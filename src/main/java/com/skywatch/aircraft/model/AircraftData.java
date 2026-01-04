@@ -1,5 +1,6 @@
 package com.skywatch.aircraft.model;
 
+import com.skywatch.aircraft.enums.AircraftStatus;
 
 import java.util.Objects;
 
@@ -9,16 +10,18 @@ public class AircraftData {
     private double speed;
     private double fuelLevel;
     private long timestamp;
+    private AircraftStatus status;
 
     public AircraftData() {
     }
 
-    public AircraftData(String aircraftId, double altitude, double speed, double fuelLevel, long timestamp) {
+    public AircraftData(String aircraftId, double altitude, double speed, double fuelLevel, long timestamp, AircraftStatus status) {
         this.aircraftId = aircraftId;
         this.altitude = altitude;
         this.speed = speed;
         this.fuelLevel = fuelLevel;
         this.timestamp = timestamp;
+        this.status = status;
     }
 
     public String getAircraftId() {
@@ -59,6 +62,14 @@ public class AircraftData {
 
     public void setTimestamp(long timestamp) {
         this.timestamp = timestamp;
+    }
+
+    public AircraftStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(AircraftStatus status) {
+        this.status = status;
     }
 
     @Override

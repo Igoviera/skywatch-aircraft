@@ -1,5 +1,6 @@
 package com.skywatch.aircraft.services;
 
+import com.skywatch.aircraft.enums.AircraftStatus;
 import com.skywatch.aircraft.model.AircraftData;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
 import org.slf4j.Logger;
@@ -21,9 +22,9 @@ public class AircraftProducerService {
     @Value("${airship.id:EMB-195-E2}")
     private String aircraftId;
 
-    private double currentFuel = 100;
+    private double currentFuel = 11;
     private double currentAltitude = 35000;
-    private boolean modoPouso = false;
+    private AircraftStatus aircraftStatus = AircraftStatus.EM_VOO;
 
     public AircraftProducerService(KafkaTemplate<String, Object> kafkaTemplate) {
         this.kafkaTemplate = kafkaTemplate;
@@ -32,22 +33,25 @@ public class AircraftProducerService {
     @Scheduled(fixedRate = 2000)
     public void sendFlightData() {
 
-        if (currentAltitude > 0) {
+        if (currentAltitude > 0 && aircraftStatus != AircraftStatus.POUSO) {
             double consumption = 0.01 + (Math.random() * 0.04);
-            currentFuel -= consumption;
+            this.currentFuel -= consumption;
             if (currentFuel <= 0) {
-                currentFuel = 0;
+                this.currentFuel = 0;
             }
         }
 
-        if (modoPouso) {
-            currentAltitude -= 500;
-            if (currentAltitude <= 0) {
-                currentAltitude = 0;
-                modoPouso = false;
+        switch (aircraftStatus) {
+            case EM_VOO -> currentAltitude = 3500 + (Math.random() * 100);
+            case APROXIMACAO -> {
+                currentAltitude -= 500;
+                if (currentAltitude <= 0) {
+                    currentAltitude = 0;
+                    aircraftStatus = AircraftStatus.POUSO;
+                    LOGGER.info("Aeronave pousou");
+                }
             }
-        } else {
-            currentAltitude = 35000 + (Math.random() * 100);
+            case POUSO -> currentAltitude = 0;
         }
 
         AircraftData data = new AircraftData(
@@ -55,7 +59,8 @@ public class AircraftProducerService {
                 currentAltitude,
                 850.0,
                 currentFuel,
-                System.currentTimeMillis()
+                System.currentTimeMillis(),
+                aircraftStatus
         );
 
         LOGGER.info("Enviando telemetria: {}", data);
@@ -68,11 +73,10 @@ public class AircraftProducerService {
 
         if (record.key() != null && record.key().equalsIgnoreCase(aircraftId)) {
             LOGGER.info("Iniciando descida...");
-            this.modoPouso = true;
+            this.aircraftStatus = AircraftStatus.APROXIMACAO;
 
         } else {
             LOGGER.error("Ignorando comando: a chave " + record.key() + " nao sou eu (" + this.aircraftId + ")");
         }
     }
-
 }
