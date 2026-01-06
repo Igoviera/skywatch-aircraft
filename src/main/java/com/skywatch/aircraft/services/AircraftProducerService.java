@@ -22,7 +22,7 @@ public class AircraftProducerService {
     @Value("${airship.id:EMB-195-E2}")
     private String aircraftId;
 
-    private double currentFuel = 11;
+    private double currentFuel = 9.0;
     private double currentAltitude = 35000;
     private AircraftStatus aircraftStatus = AircraftStatus.EM_VOO;
 
@@ -64,19 +64,16 @@ public class AircraftProducerService {
         );
 
         LOGGER.info("Enviando telemetria: {}", data);
-        kafkaTemplate.send(TOPIC, data);
+        kafkaTemplate.send(TOPIC, aircraftId, data);
 
     }
 
-    @KafkaListener(topics = "skywatch-commands", groupId = "aircraft-group")
+    @KafkaListener(topics = "skywatch-commands", groupId = "aircraft-${airship.id}")
     public void ouvirComando(ConsumerRecord<String, String> record) {
 
-        if (record.key() != null && record.key().equalsIgnoreCase(aircraftId)) {
+        if ("POUSO".equals(record.value()) && aircraftId.equalsIgnoreCase(record.key())) {
             LOGGER.info("Iniciando descida...");
             this.aircraftStatus = AircraftStatus.APROXIMACAO;
-
-        } else {
-            LOGGER.error("Ignorando comando: a chave " + record.key() + " nao sou eu (" + this.aircraftId + ")");
         }
     }
 }
